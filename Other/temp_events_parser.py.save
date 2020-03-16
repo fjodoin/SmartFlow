@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+import sys, re, json, time
+from random import randint, seed
+#data = sys.stdin.readlines()
+while True:
+    data = "test_id yyyy-mm-dd hh:mm:ss.ddd [vent.ItemStateChangedEvent] - device.info"
+    random_int = randint(0, 100)
+    data = data + " " + str(random_int)
+    log = re.match(r'(.*) - (.*)', data)
+    log_info_list = log.split()
+    log_info_dict = {
+    "events_log_id": log_info_list[0],
+    "events_log_datestamp": log_info_list[1],
+    "events_log_timestamp": log_info_list[2],
+    "events_log_type": log_info_list[3].strip("[|]"),
+    }
+    if(log_info_dict['events_log_type'] == 'vent.ItemStateChangedEvent'):
+        log_info = re.match(r'(.*) changed .* to (.*)', log(2))
+        my_value = int(log_info(2))
+        log_info_dict.update({"events_hardware_id" : log_info})
+        log_info_dict.update({"events_value" : my_value})
+        log_info_string = json.dumps(log_info_dict)
+    else:
+        log_info_dict.update({"events_log_info" : log})
+        log_info_string = json.dumps(log_info_dict)
+
+    with open("temp_events_log.log", "a") as log_file:
+        log_file.write(log_info_string + "\n")
+        log_file.close()
+
