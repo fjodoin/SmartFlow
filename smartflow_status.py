@@ -5,8 +5,11 @@ import time
 from collections import deque
 import requests
 import threading
+import numpy
+import pandas
 
 import dash
+import dash_daq as daq
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly
@@ -15,227 +18,339 @@ from dash.dependencies import Input, Output
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from bs4 import BeautifulSoup
 
+
 ecosystem_status = {
-	'light_1': "0",
-    'light_2': "0",
-    'light_3': "0",
-    'motion_sensor_1': "0",
-    'motion_sensor_2': "0",
-    'motion_sensor_3': "0",
-    'motion_sensor_4': "0",
-    'door_sensor': "0",
-    'window_sensor': "0",
+	# KITCHEN
+	'kitchen_light': "0",
+    'kitchen_motion_sensor': "0",
+    'kitchen_door_sensor': "0",
+    'kitchen_temperature': "0",
+    
+    # OFFICE
+    'office_light': "0",
+    'office_motion_sensor': "0",
+    'office_temperature': "0",
+    
+    # LIVING ROOM
+    'living_room_light': "0",
+    'living_room_motion_sensor': "0",
+    'living_room_door_sensor': "0",
+    'living_room_temperature': "0",
+    
+    # BEDROOM
+    'bedroom_light' : "0",
+    'bedroom_motion_sensor': "0",
+    'bedroom_temperature': "0",
+
     'smartflow_status': "0",
     'timestamp': "0"
 }
 
 max_length = 20
+temperature_max_length = 1
 times = deque(maxlen=max_length)
 
-# Room 1 devices
-light_1 = deque(maxlen=max_length)
-motion_sensor_1 = deque(maxlen=max_length)
-door_sensor = deque(maxlen=max_length)
+# KITCHEN devices
+kitchen_light = deque(maxlen=max_length)
+kitchen_motion_sensor = deque(maxlen=max_length)
+kitchen_door_sensor = deque(maxlen=max_length)
+kitchen_temperature = deque(maxlen=temperature_max_length)
 
-# Room 2 devices
-light_2 = deque(maxlen=max_length)
-motion_sensor_2 = deque(maxlen=max_length)
+# OFFICE devices
+office_light = deque(maxlen=max_length)
+office_motion_sensor = deque(maxlen=max_length)
 
-# Room 3 devices
-light_3 = deque(maxlen=max_length)
-motion_sensor_3 = deque(maxlen=max_length)
+# LIVING ROOM devices
+living_room_light = deque(maxlen=max_length)
+living_room_motion_sensor = deque(maxlen=max_length)
+living_room_door_sensor = deque(maxlen=max_length)
 
-# Room 4 devices
-#light_4 = deque(maxlen=max_length)
-motion_sensor_4 = deque(maxlen=max_length)
-window_sensor = deque(maxlen=max_length)
+# BEDROOM devices
+bedroom_light = deque(maxlen=max_length)
+bedroom_motion_sensor = deque(maxlen=max_length)
 
-external_stylesheets = ['/home/corelee/Desktop/winter2020/coen490/SMARTFLOW/stylesheet/smartflow_dashboard_css.css']
-
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+app = dash.Dash(__name__)
 
 data = {
-    'light_1': light_1,
-    'light_2': light_2,
-    'light_3': light_3,
-    #'light_4': light_4,
-    'motion_sensor_1': motion_sensor_1,
-    'motion_sensor_2': motion_sensor_2,
-    'motion_sensor_3': motion_sensor_3,
-    'motion_sensor_4': motion_sensor_4,
-    'door_sensor': door_sensor,
-    'window_sensor': window_sensor
+    # Room 1; KITCHEN
+    'kitchen_light': kitchen_light,
+    'kitchen_motion_sensor': kitchen_motion_sensor,
+    'kitchen_door_sensor': kitchen_door_sensor,
+    'kitchen_temperature' : kitchen_temperature,
+    # Room 2; OFFICE
+    'office_light': office_light,
+    'office_motion_sensor': office_motion_sensor,
+    
+    # Room 3; LIVING ROOM
+    'living_room_light': living_room_light,
+    'living_room_motion_sensor': living_room_motion_sensor,
+    'living_room_door_sensor': living_room_door_sensor,
+    
+    # Room 4; BEDROOM
+    'bedroom_light': bedroom_light,
+    'bedroom_motion_sensor': bedroom_motion_sensor,
 }
 
 app.layout = html.Div(
     html.Div([
         html.H4('SMARTFLOW Dashboard'),
         html.Div(id='live-update-text'),
-        dcc.Graph(id='live-update-graph'),
+        dcc.Graph(id='kitchen-graph'),
+        dcc.Graph(id='office-graph'),
+        dcc.Graph(id='living-room-graph'),
+        dcc.Graph(id='bedroom-graph'),
         dcc.Interval(
             id='interval-component',
-            interval=1 * 3000,  # in milliseconds
+            interval=1 * 1500,  # in milliseconds
             n_intervals=0
         )
     ], style={'textAlign': 'center'})
 )
 
-# Multiple components can update everytime interval gets fired.
-@app.callback(Output('live-update-graph', 'figure'),
+
+# KITCHEN GRAPH
+@app.callback(Output('kitchen-graph', 'figure'),
               [Input('interval-component', 'n_intervals')])
 def update_graph_live(n):
-    # print(time.time())
     times.append(datetime.datetime.now())
-    if len(times) == 1:
-        # Room 1; KITCHEN
-        light_1.append(ecosystem_status['light_1'])
-        motion_sensor_1.append(ecosystem_status['motion_sensor_1'])
-        window_sensor.append(ecosystem_status['window_sensor'])
-
-        # Room 2; OFFICE
-        light_2.append(ecosystem_status['light_2'])
-        motion_sensor_2.append(ecosystem_status['motion_sensor_2'])
-
-        # Room 3; LIVING ROOM
-        door_sensor.append(ecosystem_status['door_sensor'])
-        motion_sensor_3.append(ecosystem_status['motion_sensor_3'])
-
-        # Room 4; BEDROOM
-        light_3.append(ecosystem_status['light_3'])
-        motion_sensor_4.append(ecosystem_status['motion_sensor_4'])
-
-    else:
-        # Room 1; KITCHEN
-        light_1.append(ecosystem_status['light_1'])
-        motion_sensor_1.append(ecosystem_status['motion_sensor_1'])
-        window_sensor.append(ecosystem_status['window_sensor'])
-
-        # Room 2; OFFICE
-        light_2.append(ecosystem_status['light_2'])
-        motion_sensor_2.append(ecosystem_status['motion_sensor_2'])
-
-        # Room 3; LIVING ROOM
-        door_sensor.append(ecosystem_status['door_sensor'])
-        motion_sensor_3.append(ecosystem_status['motion_sensor_3'])
-
-        # Room 4; BEDROOM
-        light_3.append(ecosystem_status['light_3'])
-        motion_sensor_4.append(ecosystem_status['motion_sensor_4'])
+    # Room 1; KITCHEN
+    kitchen_light.append(ecosystem_status['kitchen_light'])
+    kitchen_motion_sensor.append(ecosystem_status['kitchen_motion_sensor'])
+    kitchen_door_sensor.append(ecosystem_status['kitchen_door_sensor'])
+    counter = 0
+    if (counter % 2) == 0:
+    	kitchen_temperature.append(str(ecosystem_status['kitchen_temperature']) + "°C")
+    	counter += 1
 
     # Create the graph with subplots
-    fig = plotly.subplots.make_subplots(rows=4, cols=2, vertical_spacing=0.05)
+    fig = plotly.subplots.make_subplots(
+    	rows=1, cols=10,
+    	specs=[[None, {"colspan": 4}, None, None, None, None, {"colspan": 2}, None, None, None]],
+    	subplot_titles=("[-KITCHEN-]", "temperature: °C", "", "", "", "", "", "", "", ""))
     fig['layout']['margin'] = {
-        'l': 100, 'r': 10, 'b': 30, 't': 10
+        'l': 100, 'r': 10, 'b': 0, 't': 50
     }
     fig['layout']['legend'] = {'orientation': 'v',
                                'borderwidth': 2,
-                               'x': 0.5,
+                               'x': -0.01,
                                'y': 1
                                }
 
     # Room 1; KITCHEN
     fig.append_trace({
         'x': list(times),
-        'y': list(data['light_1']),
-        # 'text': list(times),
-        'name': 'Light 1',
+        'y': list(data['kitchen_light']),
+        'name': 'Light',
         'mode': 'lines+markers',
-        'type': 'scatter'
-    }, 1, 1)
+        'type': 'scatter',
+        'fill': 'tozeroy',
+        'line': {'dash': 'dot'}
+    }, 1, 2)
     fig.append_trace({
         'x': list(times),
-        'y': list(data['motion_sensor_1']),
-        # 'text': list(times),
-        'name': 'Kitchen Motion Sensor',
+        'y': list(data['kitchen_motion_sensor']),
+        'name': 'Motion Sensor',
         'mode': 'lines+markers',
-        'type': 'scatter'
-    }, 1, 1)
+        'type': 'scatter',
+        'fill': 'tozeroy',
+        'line': {'dash': 'dashdot'}
+    }, 1, 2)
     fig.append_trace({
         'x': list(times),
-        'y': list(data['window_sensor']),
-        # 'text': list(times),
-        'name': 'Window Sensor',
+        'y': list(data['kitchen_door_sensor']),
+        'name': 'Door Sensor',
         'mode': 'lines+markers',
-        'type': 'scatter'
-    }, 1, 1)
+        'type': 'scatter',
+        'opacity': 0.5,
+        'fill': 'tozeroy'
+    }, 1, 2)
+    fig.append_trace({
+    	'x': list(times),
+    	'y': list(data['kitchen_temperature']),
+    	'text': list(data['kitchen_temperature']),
+    	'textposition': 'top center',
+    	'name': 'Temperature',
+    	'mode': 'markers+text',
+    	'marker' : dict(size=25),
+    	'type': 'scatter'
+    }, 1, 7)
 
+    fig.update_layout(
+    	font=dict(family='Courier New, monospace',color='#1A1A1A'),
+    	paper_bgcolor='#DBDBDB',
+    	plot_bgcolor='#DBDBDB', 
+    	height=250)
+    return fig
+
+# OFFICE GRAPH
+@app.callback(Output('office-graph', 'figure'),
+				[Input('interval-component', 'n_intervals')])
+def update_graph_live(n):
+	# Room 2; OFFICE
+    office_light.append(ecosystem_status['office_light'])
+    office_motion_sensor.append(ecosystem_status['office_motion_sensor'])
+
+	# Create the graph with subplots
+    fig = plotly.subplots.make_subplots(
+    	rows=1, cols=10,
+    	specs=[[None, {"colspan": 4}, None, None, None, None, None, None, None, None]],
+    	subplot_titles=("[-OFFICE-]", "", "", "", "", "", "", "", "", ""))
+    fig['layout']['margin'] = {
+        'l': 100, 'r': 10, 'b': 0, 't': 50
+    }
+    fig['layout']['legend'] = {'orientation': 'v',
+                               'borderwidth': 2,
+                               'x': -0.01,
+                               'y': 1
+                               }
     # Room 2; OFFICE
     fig.append_trace({
         'x': list(times),
-        'y': list(data['light_2']),
+        'y': list(data['office_light']),
         'text': list(times),
-        'name': 'Light 2',
+        'name': 'Light',
         'mode': 'lines+markers',
-        'type': 'scatter'
-    }, 2, 1)
+        'type': 'scatter',
+        'fill': 'tozeroy',
+        'line': {'dash': 'dot'}
+    }, 1, 2)
     fig.append_trace({
         'x': list(times),
-        'y': list(data['motion_sensor_2']),
+        'y': list(data['office_motion_sensor']),
         'text': list(times),
-        'name': 'Office Motion Sensor',
+        'name': 'Motion Sensor',
         'mode': 'lines+markers',
-        'type': 'scatter'
-    }, 2, 1)
+        'type': 'scatter',
+        'fill': 'tozeroy',
+        'line': {'dash': 'dashdot'}
+    }, 1, 2)
 
+    fig.update_layout(font=dict(family='Courier New, monospace',color='#1A1A1A'),
+    	paper_bgcolor='#D4DCF2',
+    	plot_bgcolor='#D4DCF2', 
+    	height=250)
+    return fig
+
+# LIVING ROOM GRAPH
+@app.callback(Output('living-room-graph', 'figure'),
+				[Input('interval-component', 'n_intervals')])
+def update_graph_live(n): 
+	# Room 3; LIVING ROOM
+    living_room_light.append(ecosystem_status['living_room_light'])
+    living_room_motion_sensor.append(ecosystem_status['living_room_motion_sensor'])
+    living_room_door_sensor.append(ecosystem_status['living_room_door_sensor'])
+
+	# Create the graph with subplots
+    fig = plotly.subplots.make_subplots(
+        rows=1, cols=10,
+        specs=[[None, {"colspan": 4}, None, None, None, None, None, None, None, None]],
+        subplot_titles=("[-LIVING ROOM-]", "", "", "", "", "", "", "", "", ""))
+    fig['layout']['margin'] = {
+        'l': 100, 'r': 10, 'b': 0, 't': 50
+    }
+    fig['layout']['legend'] = {'orientation': 'v',
+                               'borderwidth': 2,
+                               'x': -0.01,
+                               'y': 1
+                               }
     # Room 3; LIVING ROOM
     fig.append_trace({
         'x': list(times),
-        'y': list(data['door_sensor']),
+        'y': list(data['living_room_light']),
         'text': list(times),
+        'name': 'Light',
+        'mode': 'lines+markers',
+        'type': 'scatter',
+        'fill': 'tozeroy',
+        'line': {'dash': 'dot'}
+    }, 1, 2)
+    fig.append_trace({
+        'x': list(times),
+        'y': list(data['living_room_motion_sensor']),
+        'text': list(times),
+        'name': 'Motion Sensor',
+        'mode': 'lines+markers',
+        'type': 'scatter',
+        'fill': 'tozeroy',
+        'line': {'dash': 'dashdot'}
+    }, 1, 2)
+    fig.append_trace({
+        'x': list(times),
+        'y': list(data['living_room_door_sensor']),
+        # 'text': list(times),
         'name': 'Door Sensor',
         'mode': 'lines+markers',
-        'type': 'scatter'
-    }, 3, 1)
+        'type': 'scatter',
+        'opacity': 0.5,
+        'fill': 'tozeroy'
+    }, 1, 2)
+
+    fig.update_layout(font=dict(family='Courier New, monospace',color='#1A1A1A'),
+    	paper_bgcolor='#DBDBDB',
+    	plot_bgcolor='#DBDBDB', 
+    	height=250)
+    return fig
+
+# BEDROOM GRAPH
+@app.callback(Output('bedroom-graph', 'figure'),
+				[Input('interval-component', 'n_intervals')])
+def update_graph_live(n):
+	    # Room 4; BEDROOM
+    bedroom_light.append(ecosystem_status['bedroom_light'])
+    bedroom_motion_sensor.append(ecosystem_status['bedroom_motion_sensor'])
+
+	# Create the graph with subplots
+    fig = plotly.subplots.make_subplots(
+        rows=1, cols=10,
+        specs=[[None, {"colspan": 4}, None, None, None, None, None, None, None, None]],
+        subplot_titles=("[-BEDROOM-]", "", "", "", "", "", "", "", "", ""))
+    fig['layout']['margin'] = {
+        'l': 100, 'r': 10, 'b': 0, 't': 50
+    }
+    fig['layout']['legend'] = {'orientation': 'v',
+                               'borderwidth': 2,
+                               'x': -0.01,
+                               'y': 1
+                               }
+	 # Room 4
     fig.append_trace({
         'x': list(times),
-        'y': list(data['motion_sensor_3']),
+        'y': list(data['bedroom_light']),
         'text': list(times),
-        'name': 'Living Room Motion Sensor',
+        'name': 'Light',
         'mode': 'lines+markers',
-        'type': 'scatter'
-    }, 3, 1)
-
-    # Room 4
-    # fig.append_trace({
-    #     'x': list(times),
-    #     'y': list(data['light_4']),
-    #     'text': list(times),
-    #     'name': 'Light 4',
-    #     'mode': 'lines+markers',
-    #     'type': 'scatter'
-    # }, 4, 1)
+        'type': 'scatter',
+    	'fill': 'tozeroy',
+        'line': {'dash': 'dot'}
+    }, 1, 2)
     fig.append_trace({
         'x': list(times),
-        'y': list(data['motion_sensor_4']),
+        'y': list(data['bedroom_motion_sensor']),
         'text': list(times),
-        'name': 'Bedroom Motion Sensor',
+        'name': 'Motion Sensor',
         'mode': 'lines+markers',
-        'type': 'scatter'
-    }, 4, 1)
-    fig.append_trace({
-        'x': list(times),
-        'y': list(data['light_3']),
-        'text': list(times),
-        'name': 'Bedroom Light',
-        'mode': 'lines+markers',
-        'type': 'scatter'
-    }, 4, 1)
+        'type': 'scatter',
+        'fill': 'tozeroy',
+        'line': {'dash': 'dashdot'}
+    }, 1, 2)
 
-    fig.update_layout(height=800)
-
+    fig.update_layout(font=dict(family='Courier New, monospace',color='#1A1A1A'),
+    	paper_bgcolor='#D4DCF2',
+    	plot_bgcolor='#D4DCF2', 
+    	height=250)
     return fig
 
 
 class ElasticAgentThread(threading.Thread):
 	def __init__(self, _elastic_agent):
 		threading.Thread.__init__(self)
-		self.elastic_agent = _elastic_agent
+		self.ElasticAgent = _elastic_agent
 	def run(self):
 		while True:
-			self.elastic_agent.search()
-			time.sleep(3)
+			self.ElasticAgent.search()
+			time.sleep(1)
 
-class elastic_agent:
+class ElasticAgent:
     es = None
 
     def __init__(self, ip='127.0.0.1', port=9200):
@@ -249,14 +364,16 @@ class elastic_agent:
             self.es = Elasticsearch([{'host': ip, 'port': port}])
             #print(self.es.info())
             print("\nEleasticsearch running ....")
-            self.es.indices.refresh(index="filebeat-7.6.0-2020.02.17-000001")
+            # NOTE: the INDEX name below changes to the date modifications are made to the /etc/filebeat/filebeat.yml file
+            self.es.indices.refresh(index="filebeat-7.6.1-2020.03.16-000001")
 
 
         except:
             print("Fail to connect to elasticsearch ....")
 
     def search(self):
-        res = self.es.search(index="filebeat-7.6.0-2020.02.17-000001",
+    	# NOTE: the INDEX name below changes to the date modifications are made to the /etc/filebeat/filebeat.yml file
+        res = self.es.search(index="filebeat-7.6.1-2020.03.16-000001",
                              body={"size" : 10,
                              			"sort": [
                              					{"@timestamp": {"order": "desc"}}
@@ -275,14 +392,80 @@ class elastic_agent:
 ## STATUS PART
         
         smartflow_ecosystem_dict = hits[0]['_source']
-        ecosystem_status['timestamp'] = smartflow_ecosystem_dict['@timestamp'][:19]
-        ecosystem_status['light_1'] = smartflow_ecosystem_dict['light_1']
-        ecosystem_status['light_2'] = smartflow_ecosystem_dict['light_2']
-        ecosystem_status['light_3'] = smartflow_ecosystem_dict['light_3']
-        ecosystem_status['motion_sensor_1'] = smartflow_ecosystem_dict['motion_sensor_1']
-        ecosystem_status['window_sensor'] = smartflow_ecosystem_dict['window_sensor']
-        ecosystem_status['door_sensor'] = smartflow_ecosystem_dict['door_sensor']
-        ecosystem_status['smartflow_status'] = smartflow_ecosystem_dict['smartflow_status']       
+        
+        # STATUS
+        ecosystem_status['smartflow_status'] = hits[0]['_source']['smartflow_status']       
+        
+        # TIMESTAMP
+        ecosystem_status['timestamp'] = hits[0]['_source']['@timestamp'][:19]
+
+        # TEMPERATURE SENSORS
+        ecosystem_status['kitchen_temperature'] = hits[0]['_source']['kitchen_temperature']
+
+        # DOOR SENSORS
+        ecosystem_status['kitchen_door_sensor'] = hits[0]['_source']['kitchen_door_sensor']
+        ecosystem_status['living_room_door_sensor'] = hits[0]['_source']['living_room_door_sensor']
+        
+        # LIGHT & MOTION SENSORS
+        if hits[0]['_source']['kitchen_motion_sensor'] is 1:
+        	ecosystem_status['kitchen_light'] = 1
+        	ecosystem_status['kitchen_motion_sensor'] = 1
+        	ecosystem_status['office_light'] = 0
+        	ecosystem_status['office_motion_sensor'] = 0
+        	ecosystem_status['living_room_light'] = 0
+        	ecosystem_status['living_room_motion_sensor'] = 0
+        	ecosystem_status['bedroom_light'] = 0
+        	ecosystem_status['bedroom_motion_sensor'] = 0
+        elif hits[0]['_source']['office_motion_sensor'] is "1":
+        	ecosystem_status['kitchen_light'] = 0
+        	ecosystem_status['kitchen_motion_sensor'] = 0
+        	ecosystem_status['office_light'] = 1
+        	ecosystem_status['office_motion_sensor'] = 1
+        	ecosystem_status['living_room_light'] = 0
+        	ecosystem_status['living_room_motion_sensor'] = 0
+        	ecosystem_status['bedroom_light'] = 0
+        	ecosystem_status['bedroom_motion_sensor'] = 0
+        elif hits[0]['_source']['living_room_motion_sensor'] is "1":
+        	ecosystem_status['kitchen_light'] = 0
+        	ecosystem_status['kitchen_motion_sensor'] = 0
+        	ecosystem_status['office_light'] = 0
+        	ecosystem_status['office_motion_sensor'] = 0
+        	ecosystem_status['living_room_light'] = 1
+        	ecosystem_status['living_room_motion_sensor'] = 1
+        	ecosystem_status['bedroom_light'] = 0
+        	ecosystem_status['bedroom_motion_sensor'] = 0
+        elif hits[0]['_source']['bedroom_motion_sensor'] is "1":
+        	ecosystem_status['kitchen_light'] = 0
+        	ecosystem_status['kitchen_motion_sensor'] = 0
+        	ecosystem_status['office_light'] = 0
+        	ecosystem_status['office_motion_sensor'] = 0
+        	ecosystem_status['living_room_light'] = 0
+        	ecosystem_status['living_room_motion_sensor'] = 0
+        	ecosystem_status['bedroom_light'] = 1
+        	ecosystem_status['bedroom_motion_sensor'] = 1
+        else:
+
+
+        	# KITCHEN
+        	ecosystem_status['kitchen_light'] = hits[0]['_source']['kitchen_light']
+        	ecosystem_status['kitchen_motion_sensor'] = hits[0]['_source']['kitchen_motion_sensor']
+        
+        	# OFFICE
+        	ecosystem_status['office_light'] = hits[0]['_source']['office_light']
+        	ecosystem_status['office_motion_sensor'] = hits[0]['_source']['office_motion_sensor']
+
+        	# LIVING ROOM
+        	ecosystem_status['living_room_light'] = hits[0]['_source']['living_room_light']
+        	ecosystem_status['living_room_motion_sensor'] = hits[0]['_source']['living_room_motion_sensor']        
+
+        	# BEDROOM
+        	ecosystem_status['bedroom_light'] = hits[0]['_source']['bedroom_light']
+        	ecosystem_status['bedroom_motion_sensor'] = hits[0]['_source']['bedroom_motion_sensor']        
+        
+        
+        # print("##############################################")
+        # for key, value in smartflow_ecosystem_dict.items():
+        # 	print(key, value)
 ##
 
 
@@ -351,14 +534,14 @@ class elastic_agent:
         print(res['result'])
 
 
-elastic_agent007 = elastic_agent()
-elastic_agent_thread = ElasticAgentThread(elastic_agent007)
+elastic_agent = ElasticAgent()
+elastic_agent_thread = ElasticAgentThread(elastic_agent)
 elastic_agent_thread.start()
 
 app.run_server(debug=True)
 
 # while True:
-# 	elastic_agent007.search()
+# 	elastic_agent.search()
 # 	time.sleep(3)
 
 """try:
