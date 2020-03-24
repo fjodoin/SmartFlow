@@ -9,6 +9,7 @@ import numpy
 import pandas
 
 import dash
+import plotly.graph_objects as go
 import dash_daq as daq
 import dash_core_components as dcc
 import dash_html_components as html
@@ -21,34 +22,38 @@ from bs4 import BeautifulSoup
 
 ecosystem_status = {
 	# KITCHEN
-	'kitchen_light': "0",
-    'kitchen_motion_sensor': "0",
-    'kitchen_door_sensor': "0",
-    'kitchen_temperature': "0",
+	'kitchen_light': 0,
+    'kitchen_motion_sensor': 0,
+    'kitchen_door_sensor': 0,
+    'kitchen_temperature': 0,
     
     # OFFICE
-    'office_light': "0",
-    'office_motion_sensor': "0",
-    'office_temperature': "0",
+    'office_light': 0,
+    'office_motion_sensor': 0,
+    'office_temperature': 0,
     
     # LIVING ROOM
-    'living_room_light': "0",
-    'living_room_motion_sensor': "0",
-    'living_room_door_sensor': "0",
-    'living_room_temperature': "0",
+    'living_room_light': 0,
+    'living_room_motion_sensor': 0,
+    'living_room_door_sensor': 0,
+    'living_room_temperature': 0,
     
     # BEDROOM
-    'bedroom_light' : "0",
-    'bedroom_motion_sensor': "0",
-    'bedroom_temperature': "0",
+    'bedroom_light' : 0,
+    'bedroom_motion_sensor': 0,
+    'bedroom_temperature': 0,
 
-    'smartflow_status': "0",
-    'timestamp': "0"
+    'smartflow_status': 0,
+    'timestamp': 0
 }
 
 max_length = 20
-temperature_max_length = 1
+temperature_max_length = 3
+overview_max_length = 100
+
 times = deque(maxlen=max_length)
+temperature_times = deque(maxlen=temperature_max_length)
+overview_times = deque(maxlen=overview_max_length)
 
 # KITCHEN devices
 kitchen_light = deque(maxlen=max_length)
@@ -59,15 +64,22 @@ kitchen_temperature = deque(maxlen=temperature_max_length)
 # OFFICE devices
 office_light = deque(maxlen=max_length)
 office_motion_sensor = deque(maxlen=max_length)
+office_temperature = deque(maxlen=temperature_max_length)
 
 # LIVING ROOM devices
 living_room_light = deque(maxlen=max_length)
 living_room_motion_sensor = deque(maxlen=max_length)
 living_room_door_sensor = deque(maxlen=max_length)
+living_room_temperature = deque(maxlen=temperature_max_length)
 
 # BEDROOM devices
 bedroom_light = deque(maxlen=max_length)
 bedroom_motion_sensor = deque(maxlen=max_length)
+bedroom_temperature = deque(maxlen=temperature_max_length)
+
+#OVERVIEW
+overview_devices_on = deque(maxlen=overview_max_length)
+overview_smartflow_status = deque(maxlen=overview_max_length)
 
 app = dash.Dash(__name__)
 
@@ -76,19 +88,26 @@ data = {
     'kitchen_light': kitchen_light,
     'kitchen_motion_sensor': kitchen_motion_sensor,
     'kitchen_door_sensor': kitchen_door_sensor,
-    'kitchen_temperature' : kitchen_temperature,
+    'kitchen_temperature': kitchen_temperature,
     # Room 2; OFFICE
     'office_light': office_light,
     'office_motion_sensor': office_motion_sensor,
+    'office_temperature': office_temperature,
     
     # Room 3; LIVING ROOM
     'living_room_light': living_room_light,
     'living_room_motion_sensor': living_room_motion_sensor,
     'living_room_door_sensor': living_room_door_sensor,
-    
+    'living_room_temperature': living_room_temperature,
+
     # Room 4; BEDROOM
     'bedroom_light': bedroom_light,
     'bedroom_motion_sensor': bedroom_motion_sensor,
+    'bedroom_temperature': bedroom_temperature,
+
+    # OVERVIEW
+    'overview_devices_on': overview_devices_on,
+    'overview_smartflow_status': overview_smartflow_status
 }
 
 app.layout = html.Div(
@@ -99,9 +118,10 @@ app.layout = html.Div(
         dcc.Graph(id='office-graph'),
         dcc.Graph(id='living-room-graph'),
         dcc.Graph(id='bedroom-graph'),
+        dcc.Graph(id='overview-graph'),
         dcc.Interval(
             id='interval-component',
-            interval=1 * 1500,  # in milliseconds
+            interval=1 * 2000,  # in milliseconds
             n_intervals=0
         )
     ], style={'textAlign': 'center'})
@@ -112,20 +132,22 @@ app.layout = html.Div(
 @app.callback(Output('kitchen-graph', 'figure'),
               [Input('interval-component', 'n_intervals')])
 def update_graph_live(n):
-    times.append(datetime.datetime.now())
+    t = datetime.datetime.now()
+    # Synchronize TIME
+    times.append(t)
+    temperature_times.append(t)
+    overview_times.append(t)
+    
     # Room 1; KITCHEN
     kitchen_light.append(ecosystem_status['kitchen_light'])
     kitchen_motion_sensor.append(ecosystem_status['kitchen_motion_sensor'])
     kitchen_door_sensor.append(ecosystem_status['kitchen_door_sensor'])
-    counter = 0
-    if (counter % 2) == 0:
-    	kitchen_temperature.append(str(ecosystem_status['kitchen_temperature']) + "°C")
-    	counter += 1
+    kitchen_temperature.append(str(ecosystem_status['kitchen_temperature']) + "°C")
 
     # Create the graph with subplots
     fig = plotly.subplots.make_subplots(
     	rows=1, cols=10,
-    	specs=[[None, {"colspan": 4}, None, None, None, None, {"colspan": 2}, None, None, None]],
+    	specs=[[None, {"colspan": 4}, None, None, None, None, {"colspan": 3}, None, None, None]],
     	subplot_titles=("[-KITCHEN-]", "temperature: °C", "", "", "", "", "", "", "", ""))
     fig['layout']['margin'] = {
         'l': 100, 'r': 10, 'b': 0, 't': 50
@@ -165,21 +187,27 @@ def update_graph_live(n):
         'fill': 'tozeroy'
     }, 1, 2)
     fig.append_trace({
-    	'x': list(times),
+    	'x': list(temperature_times),
     	'y': list(data['kitchen_temperature']),
     	'text': list(data['kitchen_temperature']),
     	'textposition': 'top center',
     	'name': 'Temperature',
     	'mode': 'markers+text',
-    	'marker' : dict(size=25),
-    	'type': 'scatter'
+    	'marker' : dict(size=30,
+    					color='#FF7F0E'),
+    	'type': 'scatter',
     }, 1, 7)
 
     fig.update_layout(
     	font=dict(family='Courier New, monospace',color='#1A1A1A'),
     	paper_bgcolor='#DBDBDB',
     	plot_bgcolor='#DBDBDB', 
-    	height=250)
+    	height=250,
+    	yaxis=dict(
+    		range=(0, 1)),
+    	xaxis=dict(
+    		constrain="domain")
+    	)
     return fig
 
 # OFFICE GRAPH
@@ -189,12 +217,13 @@ def update_graph_live(n):
 	# Room 2; OFFICE
     office_light.append(ecosystem_status['office_light'])
     office_motion_sensor.append(ecosystem_status['office_motion_sensor'])
+    office_temperature.append(str(ecosystem_status['office_temperature']) + "°C")
 
 	# Create the graph with subplots
     fig = plotly.subplots.make_subplots(
     	rows=1, cols=10,
-    	specs=[[None, {"colspan": 4}, None, None, None, None, None, None, None, None]],
-    	subplot_titles=("[-OFFICE-]", "", "", "", "", "", "", "", "", ""))
+    	specs=[[None, {"colspan": 4}, None, None, None, None, {"colspan": 3}, None, None, None]],
+    	subplot_titles=("[-OFFICE-]", "temperature: °C", "", "", "", "", "", "", "", ""))
     fig['layout']['margin'] = {
         'l': 100, 'r': 10, 'b': 0, 't': 50
     }
@@ -224,11 +253,26 @@ def update_graph_live(n):
         'fill': 'tozeroy',
         'line': {'dash': 'dashdot'}
     }, 1, 2)
+    fig.append_trace({
+    	'x': list(temperature_times),
+    	'y': list(data['office_temperature']),
+    	'text': list(data['office_temperature']),
+    	'textposition': 'top center',
+    	'name': 'Temperature',
+    	'mode': 'markers+text',
+    	'marker' : dict(size=30,
+    					color='#FF7F0E'),
+    	'type': 'scatter',
+    }, 1, 7)
 
     fig.update_layout(font=dict(family='Courier New, monospace',color='#1A1A1A'),
     	paper_bgcolor='#D4DCF2',
     	plot_bgcolor='#D4DCF2', 
-    	height=250)
+    	height=250,
+    	yaxis=dict(
+    		range=(0, 1)),
+    	xaxis=dict(
+    		constrain="domain"))
     return fig
 
 # LIVING ROOM GRAPH
@@ -239,12 +283,13 @@ def update_graph_live(n):
     living_room_light.append(ecosystem_status['living_room_light'])
     living_room_motion_sensor.append(ecosystem_status['living_room_motion_sensor'])
     living_room_door_sensor.append(ecosystem_status['living_room_door_sensor'])
+    living_room_temperature.append(str(ecosystem_status['living_room_temperature']) + "°C")
 
 	# Create the graph with subplots
     fig = plotly.subplots.make_subplots(
         rows=1, cols=10,
-        specs=[[None, {"colspan": 4}, None, None, None, None, None, None, None, None]],
-        subplot_titles=("[-LIVING ROOM-]", "", "", "", "", "", "", "", "", ""))
+    	specs=[[None, {"colspan": 4}, None, None, None, None, {"colspan": 3}, None, None, None]],
+        subplot_titles=("[-LIVING ROOM-]", "temperature: °C", "", "", "", "", "", "", "", ""))
     fig['layout']['margin'] = {
         'l': 100, 'r': 10, 'b': 0, 't': 50
     }
@@ -284,26 +329,42 @@ def update_graph_live(n):
         'opacity': 0.5,
         'fill': 'tozeroy'
     }, 1, 2)
+    fig.append_trace({
+    	'x': list(temperature_times),
+    	'y': list(data['living_room_temperature']),
+    	'text': list(data['living_room_temperature']),
+    	'textposition': 'top center',
+    	'name': 'Temperature',
+    	'mode': 'markers+text',
+    	'marker' : dict(size=30,
+    					color='#FF7F0E'),
+    	'type': 'scatter',
+    }, 1, 7)
 
     fig.update_layout(font=dict(family='Courier New, monospace',color='#1A1A1A'),
     	paper_bgcolor='#DBDBDB',
     	plot_bgcolor='#DBDBDB', 
-    	height=250)
+    	height=250,
+    	yaxis=dict(
+    		range=(0, 1)),
+    	xaxis=dict(
+    		constrain="domain"))
     return fig
 
 # BEDROOM GRAPH
 @app.callback(Output('bedroom-graph', 'figure'),
 				[Input('interval-component', 'n_intervals')])
 def update_graph_live(n):
-	    # Room 4; BEDROOM
+    # Room 4; BEDROOM
     bedroom_light.append(ecosystem_status['bedroom_light'])
     bedroom_motion_sensor.append(ecosystem_status['bedroom_motion_sensor'])
+    bedroom_temperature.append(str(ecosystem_status['bedroom_temperature']) + "°C")
 
 	# Create the graph with subplots
     fig = plotly.subplots.make_subplots(
         rows=1, cols=10,
-        specs=[[None, {"colspan": 4}, None, None, None, None, None, None, None, None]],
-        subplot_titles=("[-BEDROOM-]", "", "", "", "", "", "", "", "", ""))
+    	specs=[[None, {"colspan": 4}, None, None, None, None, {"colspan": 3}, None, None, None]],
+        subplot_titles=("[-BEDROOM-]", "temperature: °C", "", "", "", "", "", "", "", ""))
     fig['layout']['margin'] = {
         'l': 100, 'r': 10, 'b': 0, 't': 50
     }
@@ -333,12 +394,67 @@ def update_graph_live(n):
         'fill': 'tozeroy',
         'line': {'dash': 'dashdot'}
     }, 1, 2)
+    fig.append_trace({
+    	'x': list(temperature_times),
+    	'y': list(data['bedroom_temperature']),
+    	'text': list(data['bedroom_temperature']),
+    	'textposition': 'top center',
+    	'name': 'Temperature',
+    	'mode': 'markers+text',
+    	'marker' : dict(size=30,
+    					color='#FF7F0E'),
+    	'type': 'scatter',
+    }, 1, 7)
 
     fig.update_layout(font=dict(family='Courier New, monospace',color='#1A1A1A'),
     	paper_bgcolor='#D4DCF2',
     	plot_bgcolor='#D4DCF2', 
-    	height=250)
+    	height=250,
+    	yaxis=dict(
+    		range=(0, 1)),
+    	xaxis=dict(
+    		constrain="domain"))
     return fig
+
+# OVERVIEW GRAPH
+@app.callback(Output('overview-graph', 'figure'),
+				[Input('interval-component', 'n_intervals')])
+def update_graph_live(n):
+	devices_on = 0
+	for key, value in ecosystem_status.items():
+		print(key, value)
+		if value == 1:
+			devices_on += 1
+	overview_devices_on.append(devices_on)
+	# print(devices_on)
+
+    # Create the graph with subplots
+	fig = plotly.subplots.make_subplots(
+        rows=1, cols=10,
+        specs=[[None, None, None, None, {"colspan": 4}, None, None, None, None, None]],
+        subplot_titles=("[-OVERVIEW-]", "", "", "", "", "", "", "", "", ""))
+	fig['layout']['margin'] = {
+        'l': 100, 'r': 10, 'b': 0, 't': 50
+    }
+	fig['layout']['legend'] = {'orientation': 'v',
+                               'borderwidth': 2,
+                               'x': -0.01,
+                               'y': 1
+                               }
+	device_bar = go.Bar(
+                x=list(overview_times),
+                y=list(overview_devices_on)
+                )
+	fig.append_trace(device_bar, 1, 5)
+	fig.update_layout(font=dict(family='Courier New, monospace',color='#1A1A1A'),
+    	paper_bgcolor='#DBDBDB',
+    	plot_bgcolor='#DBDBDB', 
+    	height=500,
+    	yaxis=dict(
+    		range=(0, 10)))
+
+	return fig
+    	
 
 
 class ElasticAgentThread(threading.Thread):
@@ -373,24 +489,26 @@ class ElasticAgent:
 
     def search(self):
     	# NOTE: the INDEX name below changes to the date modifications are made to the /etc/filebeat/filebeat.yml file
-        res = self.es.search(index="filebeat-7.6.1-2020.03.16-000001",
-                             body={"size" : 10,
-                             			"sort": [
-                             					{"@timestamp": {"order": "desc"}}
-                             			],
-                             			"query": {"match_all" : {}}
-                             	})
+        # res = self.es.search(index="filebeat-7.6.1-2020.03.16-000001",
+        #                      body={"size" : 10,
+        #                      			"sort": [
+        #                      					{"@timestamp": {"order": "desc"}}
+        #                      			],
+        #                      			"query": {"match_all" : {}}
+        #                      	})
         
-        # print(res)
+        # # print(res)
 
-        # print(type(res))
-        hits = res['hits']['hits']
-        # print(type(hits))
-        # for entry in hits:
-        # 	print(entry['_source']['@timestamp'], entry['_source']['']"\n")
+        # # print(type(res))
+        # hits = res['hits']['hits']
+        # # print(type(hits))
+        # # for entry in hits:
+        # # 	print(entry['_source']['@timestamp'], entry['_source']['']"\n")
         
 ## STATUS PART
         
+		
+
         smartflow_ecosystem_dict = hits[0]['_source']
         
         # STATUS
@@ -401,6 +519,9 @@ class ElasticAgent:
 
         # TEMPERATURE SENSORS
         ecosystem_status['kitchen_temperature'] = hits[0]['_source']['kitchen_temperature']
+        ecosystem_status['office_temperature'] = hits[0]['_source']['office_temperature']
+        ecosystem_status['living_room_temperature'] = hits[0]['_source']['living_room_temperature']
+        ecosystem_status['bedroom_temperature'] = hits[0]['_source']['bedroom_temperature']
 
         # DOOR SENSORS
         ecosystem_status['kitchen_door_sensor'] = hits[0]['_source']['kitchen_door_sensor']
@@ -416,7 +537,7 @@ class ElasticAgent:
         	ecosystem_status['living_room_motion_sensor'] = 0
         	ecosystem_status['bedroom_light'] = 0
         	ecosystem_status['bedroom_motion_sensor'] = 0
-        elif hits[0]['_source']['office_motion_sensor'] is "1":
+        elif hits[0]['_source']['office_motion_sensor'] is 1:
         	ecosystem_status['kitchen_light'] = 0
         	ecosystem_status['kitchen_motion_sensor'] = 0
         	ecosystem_status['office_light'] = 1
@@ -425,7 +546,7 @@ class ElasticAgent:
         	ecosystem_status['living_room_motion_sensor'] = 0
         	ecosystem_status['bedroom_light'] = 0
         	ecosystem_status['bedroom_motion_sensor'] = 0
-        elif hits[0]['_source']['living_room_motion_sensor'] is "1":
+        elif hits[0]['_source']['living_room_motion_sensor'] is 1:
         	ecosystem_status['kitchen_light'] = 0
         	ecosystem_status['kitchen_motion_sensor'] = 0
         	ecosystem_status['office_light'] = 0
@@ -434,7 +555,7 @@ class ElasticAgent:
         	ecosystem_status['living_room_motion_sensor'] = 1
         	ecosystem_status['bedroom_light'] = 0
         	ecosystem_status['bedroom_motion_sensor'] = 0
-        elif hits[0]['_source']['bedroom_motion_sensor'] is "1":
+        elif hits[0]['_source']['bedroom_motion_sensor'] is 1:
         	ecosystem_status['kitchen_light'] = 0
         	ecosystem_status['kitchen_motion_sensor'] = 0
         	ecosystem_status['office_light'] = 0
@@ -444,8 +565,6 @@ class ElasticAgent:
         	ecosystem_status['bedroom_light'] = 1
         	ecosystem_status['bedroom_motion_sensor'] = 1
         else:
-
-
         	# KITCHEN
         	ecosystem_status['kitchen_light'] = hits[0]['_source']['kitchen_light']
         	ecosystem_status['kitchen_motion_sensor'] = hits[0]['_source']['kitchen_motion_sensor']
@@ -463,9 +582,10 @@ class ElasticAgent:
         	ecosystem_status['bedroom_motion_sensor'] = hits[0]['_source']['bedroom_motion_sensor']        
         
         
-        # print("##############################################")
-        # for key, value in smartflow_ecosystem_dict.items():
-        # 	print(key, value)
+        print("##############################################")
+        for key, value in smartflow_ecosystem_dict.items():
+        	print(key, value)
+        print("##############################################")
 ##
 
 
