@@ -53,24 +53,17 @@ def analyze_smart_home(smart_flow_dict):
     """"""
     s_flow_dict = smart_flow_dict
     smartflow_list = [[
-        0.0, # Time
-        # Kitchen
-        s_flow_dict['kitchen_light'],
-        s_flow_dict['kitchen_motion_sensor'],
-        s_flow_dict['kitchen_door_sensor'],
-
-        # Office
-        s_flow_dict['office_light'],
-        s_flow_dict['office_motion_sensor'],
-
-        # Living Room
-        s_flow_dict['living_room_light'],
-        s_flow_dict['living_room_motion_sensor'],
-        s_flow_dict['living_room_door_sensor'],
-        
-        # Bedroom
-        s_flow_dict['bedroom_light'],
-        s_flow_dict['bedroom_motion_sensor']
+        0,                                          # Time
+        s_flow_dict['kitchen_light'],               # Kitchen Light(M015)
+        s_flow_dict['kitchen_motion_sensor'],       # Kitchen Motion(M019)
+        s_flow_dict['living_room_motion_sensor'],   # Living Room Motion(M020)
+        s_flow_dict['bedroom_motion_sensor'],       # Bedroom Motion(M007)
+        s_flow_dict['office_motion_sensor'],        # Office Motion(M027)
+        s_flow_dict['living_room_door_sensor'],     # Living Room Door(D001)
+        s_flow_dict['kitchen_door_sensor'],         # Kitchen Door(D002)
+        s_flow_dict['living_room_light'],           # Living Room Light(M013)
+        s_flow_dict['office_light'],                # Office Light(M026)
+        s_flow_dict['bedroom_light']                # Bedroom Light(M005) 
     ]]
 
     smartflow_status = joblib_model.predict(smartflow_list)
@@ -82,29 +75,24 @@ def analyze_smart_home(smart_flow_dict):
 # Define Machine Learning Dataset parameters (except for temperature)
 smartflow_dict = {
     'date': "null",
-    'time': "null",  # Time of day; hardcoded to 0.0 for now
-    'kitchen_light': 0,  # Kitchen(M019)
-    'kitchen_motion_sensor': 0,  # Kitchen (TBD)
-    'kitchen_door_sensor': 0,  # Back Window(D002)
+    'time': "null",  # Time of day
+    'kitchen_light': 0,  # Kitchen(M015)
+    'kitchen_motion_sensor': 0,  # Kitchen (M019)
+    'kitchen_door_sensor': 0,  # Kitchen Door(D002)
     'kitchen_temperature': 0,
-    'office_light': 0,  # Office(M027)
-    'office_motion_sensor': 0,  # Office(TBD)
+    'office_light': 0,  # Office Light(M026)
+    'office_motion_sensor': 0,  # Office Motion(M027)
     'office_temperature': 0,
-    'living_room_light': 0,  # Living Room(TBD)
+    'living_room_light': 0,  # Living Room Light(M013)
     'living_room_motion_sensor': 0,  # Living Room(M020)
-    'living_room_door_sensor': 0,  # Front Door(D001)
+    'living_room_door_sensor': 0,  # Living Room Door(D001)
     'living_room_temperature': 0,
-    'bedroom_light': 0,  # Master Bedroom(M007)
-    'bedroom_motion_sensor': 0,  # Bedroom(TBD)
+    'bedroom_light': 0,  # Bedroom Light(M005)
+    'bedroom_motion_sensor': 0,  # Bedroom Motion(M007)
     'bedroom_temperature': 0
 }
 
 openhab_agent = OpenhabAgent()
-# openhab_agent.on('/hue_0107_ecb5fa1b9120_7_presence"')
-# print(smartflow_dict['kitchen_motion_sensor'])
-# time.sleep(3)
-# openhab_agent.off('/hue_0107_ecb5fa1b9120_7_presence"')
-# print(smartflow_dict['kitchen_motion_sensor'])
 
 kitchen_light_id = '/hue_0100_ecb5fa1b9120_1_brightness"'
 kitchen_motion_sensor_id = '/hue_0107_ecb5fa1b9120_7_presence"'
