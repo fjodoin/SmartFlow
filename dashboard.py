@@ -42,7 +42,7 @@ class EventAgentThread(threading.Thread):
 		global ecosystem_status
 		while True:
 			try:
-				print("waiting...")
+				# print("waiting...")
 				data = sys.stdin.readline()
 			except KeyboardInterrupt:
 				break
@@ -54,7 +54,9 @@ class EventAgentThread(threading.Thread):
 			ecosystem_status = data_dict
 			# print(counter_check)
 			# print(ecosystem_status)
-			
+
+event_agent_thread = EventAgentThread()
+event_agent_thread.start()			
 ################################ END OF LOG LISTENING ################################
 
 ################################ VARIABLES ################################
@@ -139,7 +141,8 @@ app.layout = html.Div(
         )
     ], style={'textAlign': 'center'})
 )
-app.title = 'TEST TITLE'
+app.title = 'SMARTFLOW'
+
 # KITCHEN GRAPH
 @app.callback(Output('kitchen-graph', 'figure'),
               [Input('interval-component', 'n_intervals')])
@@ -151,7 +154,7 @@ def update_graph_live(n):
     overview_times.append(t)
     
     # Room 1; KITCHEN
-    print(ecosystem_status)
+    # print(ecosystem_status)
     kitchen_light.append(ecosystem_status['kitchen_light'])
     kitchen_motion_sensor.append(ecosystem_status['kitchen_motion_sensor'])
     kitchen_door_sensor.append(ecosystem_status['kitchen_door_sensor'])
@@ -177,7 +180,7 @@ def update_graph_live(n):
         'y': list(data['kitchen_light']),
         'name': 'Light',
         'mode': 'lines+markers',
-        'marker' : dict(size=10),
+        'marker' : dict(size=10, color='#FFFF00'),
         'type': 'scatter',
         'fill': 'tozeroy',
         'line': {'dash': 'dot'}
@@ -187,7 +190,7 @@ def update_graph_live(n):
         'y': list(data['kitchen_motion_sensor']),
         'name': 'Motion Sensor',
         'mode': 'lines+markers',
-        'marker' : dict(size=10),
+        'marker' : dict(size=10, color='#124653'),
         'type': 'scatter',
         'fill': 'tozeroy',
         'line': {'dash': 'dashdot'}
@@ -210,7 +213,7 @@ def update_graph_live(n):
     	'name': 'Temperature',
     	'mode': 'markers+text',
     	'marker' : dict(size=30,
-    					color='#FF7F0E'),
+    					color='#FE8D8F'),
     	'type': 'scatter',
     }, 1, 7)
 
@@ -254,7 +257,7 @@ def update_graph_live(n):
         'text': list(times),
         'name': 'Light',
         'mode': 'lines+markers',
-        'marker' : dict(size=10),
+        'marker' : dict(size=10, color='#FFFF00'),
         'type': 'scatter',
         'fill': 'tozeroy',
         'line': {'dash': 'dot'}
@@ -265,7 +268,7 @@ def update_graph_live(n):
         'text': list(times),
         'name': 'Motion Sensor',
         'mode': 'lines+markers',
-        'marker' : dict(size=10),
+        'marker' : dict(size=10, color='#124653'),
         'type': 'scatter',
         'fill': 'tozeroy',
         'line': {'dash': 'dashdot'}
@@ -278,7 +281,7 @@ def update_graph_live(n):
     	'name': 'Temperature',
     	'mode': 'markers+text',
     	'marker' : dict(size=30,
-    					color='#FF7F0E'),
+    					color='#FE8D8F'),
     	'type': 'scatter',
     }, 1, 7)
 
@@ -322,7 +325,7 @@ def update_graph_live(n):
         'text': list(times),
         'name': 'Light',
         'mode': 'lines+markers',
-        'marker' : dict(size=10),
+        'marker' : dict(size=10, color='#FFFF00'),
         'type': 'scatter',
         'fill': 'tozeroy',
         'line': {'dash': 'dot'}
@@ -333,7 +336,7 @@ def update_graph_live(n):
         'text': list(times),
         'name': 'Motion Sensor',
         'mode': 'lines+markers',
-        'marker' : dict(size=10),
+        'marker' : dict(size=10, color='#124653'),
         'type': 'scatter',
         'fill': 'tozeroy',
         'line': {'dash': 'dashdot'}
@@ -357,7 +360,7 @@ def update_graph_live(n):
     	'name': 'Temperature',
     	'mode': 'markers+text',
     	'marker' : dict(size=30,
-    					color='#FF7F0E'),
+    					color='#FE8D8F'),
     	'type': 'scatter',
     }, 1, 7)
 
@@ -400,7 +403,7 @@ def update_graph_live(n):
         'text': list(times),
         'name': 'Light',
         'mode': 'lines+markers',
-        'marker' : dict(size=10),
+        'marker' : dict(size=10, color='#FFFF00'),
         'type': 'scatter',
     	'fill': 'tozeroy',
         'line': {'dash': 'dot'}
@@ -411,7 +414,7 @@ def update_graph_live(n):
         'text': list(times),
         'name': 'Motion Sensor',
         'mode': 'lines+markers',
-        'marker' : dict(size=10),
+        'marker' : dict(size=10, color='#124653'),
         'type': 'scatter',
         'fill': 'tozeroy',
         'line': {'dash': 'dashdot'}
@@ -424,7 +427,7 @@ def update_graph_live(n):
     	'name': 'Temperature',
     	'mode': 'markers+text',
     	'marker' : dict(size=30,
-    					color='#FF7F0E'),
+    					color='#FE8D8F'),
     	'type': 'scatter',
     }, 1, 7)
 
@@ -454,15 +457,15 @@ def update_graph_live(n):
 		if value == 1:
 			devices_on += 1
 	overview_devices_on.append(devices_on)
-	overview_smartflow_status.append(ecosystem_status['smartflow_status'])
+	overview_smartflow_status.append(int(ecosystem_status['smartflow_status']))
 
     # Create the graph with subplots
 	fig = plotly.subplots.make_subplots(
         rows=3, cols=10,
-        specs=[[None, None, None, {"colspan": 6}, None, None, None, None, None, None],
-        		[{'type': 'domain', "colspan": 2, "rowspan": 2}, None, None, {"colspan": 6, "rowspan": 2}, None, None, None, None, None, None],
+        specs=[[{'type': 'domain', "colspan": 3, "rowspan": 3}, None, None, {"colspan": 6}, None, None, None, None, None, None],
+        		[None, None, None, {"colspan": 6, "rowspan": 2}, None, None, None, None, None, None],
         		[None, None, None, None, None, None, None, None, None, None]],
-        subplot_titles=("Status", "", "Active Devices", "", "", "", "", "", "", "",
+        subplot_titles=("", "Status", "Active Devices", "", "", "", "", "", "", "",
         				"", "", "", "", "", "", "", "", "", ""),
         shared_xaxes=True)
 	fig['layout']['margin'] = {
@@ -486,14 +489,15 @@ def update_graph_live(n):
 	for entry in list(overview_smartflow_status):
 		if entry is 0:
 			normal += 1
-		else:
+		elif entry is 1:
 			anomalous += 1
+	print(list(overview_smartflow_status))
 	values = [anomalous, normal]
 	
 	colors=['#FF0000', '#32CD32']
 	system_pie = go.Pie(
 					labels=labels,
-					#name='Overview',
+					hole=.3,
 					values=values,
 					hoverinfo='label+percent',
 					marker=dict(colors=colors))
@@ -509,7 +513,7 @@ def update_graph_live(n):
     					color=(set_color(list(overview_smartflow_status)[len(list(overview_smartflow_status))-1]))),
     	'type': 'scatter',	
 	}, 1, 4)
-	fig.append_trace(system_pie, 2, 1)
+	fig.append_trace(system_pie, 1, 1)
 	fig.append_trace(device_bar, 2, 4)
 	
 	fig.update_layout(title_text='[---OVERVIEW---]', font=dict(family='Courier New, monospace',color='#1A1A1A'),
@@ -520,7 +524,6 @@ def update_graph_live(n):
     	yaxis2=dict(range=(0, 10)))
 	return fig
 ################################ END OF DASHBOARD LAYOUT ################################
-event_agent_thread = EventAgentThread()
-event_agent_thread.start()
+
 
 app.run_server(debug=True)

@@ -4,7 +4,7 @@ import pickle
 import joblib
 
 
-joblib_model = joblib.load('joblib_saved_model')
+joblib_model = joblib.load('finalized_model.sav')
 
 
 class OpenhabAgent:
@@ -42,8 +42,8 @@ class OpenhabAgent:
 
 def log_system_status(smartflow_status):
     """"""
-    for key, value in smartflow_status.items():
-    	print(key,value)
+    # for key, value in smartflow_status.items():
+    # 	print(key,value)
     log_info_string = json.dumps(smartflow_status)
     with open("smartflow_events.log", "a") as log_file:
         log_file.write(log_info_string + "\n")
@@ -72,13 +72,10 @@ def analyze_smart_home(smart_flow_dict):
         s_flow_dict['bedroom_light'],
         s_flow_dict['bedroom_motion_sensor']
     ]]
-# TODO: CRASHING HERE BECAUSE DIMENSIONS DONT MATCH ML MODEL ATM!!!    
-    # smartflow_status = joblib_model.predict(smartflow_list)
-    # print(f'Status of Smart Home: {smartflow_status}')
 
-    # s_flow_dict.update({"smartflow_status": str(smartflow_status[0])})
-# HARDCODED STATUS TO 0 UNTIL NEW MODEL IS CREATED BY A.S
-    smartflow_dict.update({"smartflow_status": 0})
+    smartflow_status = joblib_model.predict(smartflow_list)
+    print(f'Status of Smart Home: {smartflow_status}')
+    s_flow_dict.update({"smartflow_status": str(smartflow_status[0])})
     log_system_status(smartflow_dict)
 
 
@@ -225,14 +222,8 @@ while True:
                 smartflow_dict['kitchen_motion_sensor'] = 0
             analyze_smart_home(smartflow_dict)
         elif "_4_temperature" in log_status[0]:
-        	print(log_status)
-        	if log_status[5] is "to":
-        		temp = 6
-        	elif log_status[6] is "to":
-        		temp = 7
-        	else:
-        		temp = 5
-        	smartflow_dict['kitchen_temperature'] = log_status[temp]
+        	# print(log_status)
+        	openhab_agent.get_temp(kitchen_temperature_id, 'kitchen_temperature')
         	analyze_smart_home(smartflow_dict)
         # OFFICE
         elif "_2_brightness" in log_status[0]:
@@ -251,14 +242,7 @@ while True:
                 smartflow_dict['office_motion_sensor'] = 0
             analyze_smart_home(smartflow_dict)
         elif "_9_temperature" in log_status[0]:
-        	print(log_status)
-        	if log_status[5] is "to":
-        		temp = 6
-        	elif log_status[6] is "to":
-        		temp = 7
-        	else:
-        		temp = 5
-        	smartflow_dict['office_temperature'] = log_status[temp]
+        	openhab_agent.get_temp(office_temperature_id, 'office_temperature')
         	analyze_smart_home(smartflow_dict)
         # LIVING ROOM
         elif "_3_brightness" in log_status[0]:
@@ -277,14 +261,7 @@ while True:
                 smartflow_dict['living_room_motion_sensor'] = 0
             analyze_smart_home(smartflow_dict)
         elif "_20_temperature" in log_status[0]:
-        	print(log_status)
-        	if log_status[5] is "to":
-        		temp = 6
-        	elif log_status[6] is "to":
-        		temp = 7
-        	else:
-        		temp = 5
-        	smartflow_dict['living_room_temperature'] = log_status[temp]
+        	openhab_agent.get_temp(living_room_temperature_id, 'living_room_temperature')
         	analyze_smart_home(smartflow_dict)
         # BEDROOM
         elif "_4_brightness" in log_status[0]:
@@ -303,14 +280,7 @@ while True:
                 smartflow_dict['bedroom_motion_sensor'] = 0
             analyze_smart_home(smartflow_dict)
         elif "_31_temperature" in log_status[0]:
-        	print(log_status)
-        	if log_status[5] is "to":
-        		temp = 6
-        	elif log_status[6] is "to":
-        		temp = 7
-        	else:
-        		temp = 5
-        	smartflow_dict['bedroom_temperature'] = log_status[temp]
+        	openhab_agent.get_temp(bedroom_temperature_id, 'bedroom_temperature')
         	analyze_smart_home(smartflow_dict)
 
     # CUSTOM PARSING due to API issues with Samsung devices; requires internet connection
