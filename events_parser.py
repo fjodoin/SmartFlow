@@ -67,7 +67,7 @@ def analyze_smart_home(smart_flow_dict):
     ]]
 
     smartflow_status = joblib_model.predict(smartflow_list)
-    print(f'Status of Smart Home: {smartflow_status}')
+    print(f'Status of Smart Home: {smartflow_status}: {smartflow_list}')
     s_flow_dict.update({"smartflow_status": str(smartflow_status[0])})
     log_system_status(smartflow_dict)
 
