@@ -91,6 +91,61 @@ smartflow_dict = {
     'bedroom_temperature': 0
 }
 
+def synchronize_lights(current_room):
+    # Turn off all lights not in current_room
+    if current_room is "kitchen":
+        # if smartflow_dict['office_light'] == 1.0:
+        openhab_agent.off(office_light_id)
+        if smartflow_dict['office_motion_sensor'] == 1:
+            openhab_agent.off(office_motion_sensor_id)
+        # if smartflow_dict['living_room_light'] == 1.0:
+        openhab_agent.off(living_room_light_id)
+        if smartflow_dict['living_room_motion_sensor'] == 1:
+            openhab_agent.off(living_room_motion_sensor_id)
+        # if smartflow_dict['bedroom_light'] == 1.0:
+        openhab_agent.off(bedroom_light_id)
+        if smartflow_dict['bedroom_motion_sensor'] == 1:
+            openhab_agent.off(bedroom_motion_sensor_id) 
+    elif current_room is "office":
+        # if smartflow_dict['kitchen_light'] == 1.0:
+        openhab_agent.off(kitchen_light_id)
+        if smartflow_dict['kitchen_motion_sensor'] == 1:
+            openhab_agent.off(kitchen_motion_sensor_id)
+        # if smartflow_dict['living_room_light'] == 1.0:
+        openhab_agent.off(living_room_light_id)
+        if smartflow_dict['living_room_motion_sensor'] == 1:
+            openhab_agent.off(living_room_motion_sensor_id)
+        # if smartflow_dict['bedroom_light'] == 1.0:
+        openhab_agent.off(bedroom_light_id)
+        if smartflow_dict['bedroom_motion_sensor'] == 1:
+                openhab_agent.off(bedroom_motion_sensor_id) 
+    elif current_room is "living_room":
+        # if smartflow_dict['kitchen_light'] == 1.0:
+        openhab_agent.off(kitchen_light_id)
+        if smartflow_dict['kitchen_motion_sensor'] == 1:
+                openhab_agent.off(kitchen_motion_sensor_id)
+        # if smartflow_dict['office_light'] == 1.0:
+        openhab_agent.off(office_light_id)
+        if smartflow_dict['office_motion_sensor'] == 1:
+                openhab_agent.off(office_motion_sensor_id)
+        # if smartflow_dict['bedroom_light'] == 1.0:
+        openhab_agent.off(bedroom_light_id)
+        if smartflow_dict['bedroom_motion_sensor'] == 1:
+                openhab_agent.off(bedroom_motion_sensor_id)
+    elif current_room is "bedroom":
+        # if smartflow_dict['kitchen_light'] == 1.0:
+        openhab_agent.off(kitchen_light_id)
+        if smartflow_dict['kitchen_motion_sensor'] == 1:
+                openhab_agent.off(kitchen_motion_sensor_id)
+        # if smartflow_dict['office_light'] == 1.0:
+        openhab_agent.off(office_light_id)
+        if smartflow_dict['office_motion_sensor'] == 1:
+                openhab_agent.off(office_motion_sensor_id)
+        # if smartflow_dict['living_room_light'] == 1.0:
+        openhab_agent.off(living_room_light_id)
+        if smartflow_dict['living_room_motion_sensor'] == 1:
+                openhab_agent.off(living_room_motion_sensor_id)
+
 openhab_agent = OpenhabAgent()
 
 kitchen_light_id = '/hue_0100_ecb5fa1b9120_1_brightness"'
@@ -115,62 +170,6 @@ bedroom_temperature_id = '/hue_0302_ecb5fa1b9120_31_temperature'
 openhab_agent.get_temp(bedroom_temperature_id, 'bedroom_temperature')
 
 analyze_smart_home(smartflow_dict)
-
-
-def synchronize_lights(current_room):
-	# Turn off all lights not in current_room
-	if current_room is "kitchen":
-		# if smartflow_dict['office_light'] == 1.0:
-		openhab_agent.off(office_light_id)
-		if smartflow_dict['office_motion_sensor'] == 1:
-			openhab_agent.off(office_motion_sensor_id)
-		# if smartflow_dict['living_room_light'] == 1.0:
-		openhab_agent.off(living_room_light_id)
-		if smartflow_dict['living_room_motion_sensor'] == 1:
-			openhab_agent.off(living_room_motion_sensor_id)
-		# if smartflow_dict['bedroom_light'] == 1.0:
-		openhab_agent.off(bedroom_light_id)
-		if smartflow_dict['bedroom_motion_sensor'] == 1:
-			openhab_agent.off(bedroom_motion_sensor_id)	
-	elif current_room is "office":
-		# if smartflow_dict['kitchen_light'] == 1.0:
-		openhab_agent.off(kitchen_light_id)
-		if smartflow_dict['kitchen_motion_sensor'] == 1:
-			openhab_agent.off(kitchen_motion_sensor_id)
-		# if smartflow_dict['living_room_light'] == 1.0:
-		openhab_agent.off(living_room_light_id)
-		if smartflow_dict['living_room_motion_sensor'] == 1:
-			openhab_agent.off(living_room_motion_sensor_id)
-		# if smartflow_dict['bedroom_light'] == 1.0:
-		openhab_agent.off(bedroom_light_id)
-		if smartflow_dict['bedroom_motion_sensor'] == 1:
-				openhab_agent.off(bedroom_motion_sensor_id)	
-	elif current_room is "living_room":
-		# if smartflow_dict['kitchen_light'] == 1.0:
-		openhab_agent.off(kitchen_light_id)
-		if smartflow_dict['kitchen_motion_sensor'] == 1:
-				openhab_agent.off(kitchen_motion_sensor_id)
-		# if smartflow_dict['office_light'] == 1.0:
-		openhab_agent.off(office_light_id)
-		if smartflow_dict['office_motion_sensor'] == 1:
-				openhab_agent.off(office_motion_sensor_id)
-		# if smartflow_dict['bedroom_light'] == 1.0:
-		openhab_agent.off(bedroom_light_id)
-		if smartflow_dict['bedroom_motion_sensor'] == 1:
-				openhab_agent.off(bedroom_motion_sensor_id)
-	elif current_room is "bedroom":
-		# if smartflow_dict['kitchen_light'] == 1.0:
-		openhab_agent.off(kitchen_light_id)
-		if smartflow_dict['kitchen_motion_sensor'] == 1:
-				openhab_agent.off(kitchen_motion_sensor_id)
-		# if smartflow_dict['office_light'] == 1.0:
-		openhab_agent.off(office_light_id)
-		if smartflow_dict['office_motion_sensor'] == 1:
-				openhab_agent.off(office_motion_sensor_id)
-		# if smartflow_dict['living_room_light'] == 1.0:
-		openhab_agent.off(living_room_light_id)
-		if smartflow_dict['living_room_motion_sensor'] == 1:
-				openhab_agent.off(living_room_motion_sensor_id)
 
 
 # MAIN LOOP
