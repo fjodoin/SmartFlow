@@ -1,4 +1,6 @@
-NOTE: This README is for Linux Debina-based machines.
+![](img/smartflow.PNG)
+
+NOTE: This README was written for a Linux Debian machine.
 # FOR SYSTEM ADMINISTRATORS
 ## Installation: 
 Explains how to download and install SmartFlow. It is assumed the System Administrator has all the prerequisites for the program and has the Anaconda virtual environment activated. Consult the user manual for all prerequisites. 
