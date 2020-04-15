@@ -1,1 +1,0 @@
-#!/usr/bin/bashecho $(/opt/vc/bin/vcgencmd measure_temp)

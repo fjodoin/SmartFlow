@@ -519,7 +519,7 @@ def update_graph_live(n):
 	fig.update_layout(title_text='[---OVERVIEW---]', font=dict(family='Courier New, monospace',color='#1A1A1A'),
     	paper_bgcolor='#C2C5CC',
     	plot_bgcolor='#C2C5CC', 
-    	height=250,
+    	height=300,
     	yaxis=dict(range=(0, 1)),
     	yaxis2=dict(range=(0, 10)))
 	return fig
